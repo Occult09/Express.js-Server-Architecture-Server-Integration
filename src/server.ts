@@ -18,14 +18,14 @@ const initDB = async () => {
         await pool.query(
             `CREATE TABLE IF NOT EXISTS users(
                 id SERIAL PRIMARY KEY,
-                name VARCHAR(20),
-                email VARCHAR(20) NOT NULL,
-                password VARCHAR(20) NOT NULL,
+                name VARCHAR(150),
+                email VARCHAR(150) UNIQUE NOT NULL,
+                password VARCHAR(150) NOT NULL,
                 is_active BOOLEAN DEFAULT true,
                 age INT,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
-            )`
+            );`
         )
         console.log("Database connected successfully!");
     } catch (error) {
@@ -42,16 +42,75 @@ app.get('/user', (req: Request, res: Response) => {
     })
 })
 
-app.post('/', async (req: Request, res: Response) => {
+app.post('/api/users', async (req: Request, res: Response) => {
     // console.log(req.body);
-    const { name, course, password } = req.body;
-    res.status(201).json({
-        message: 'Created',
-        data: {
-            name, course
-        }
-    })
+    try {
+        const { name, email, password, age } = req.body;
+        const result = await pool.query(`
+        INSERT INTO users(name,email,password,age)
+        VALUES($1,$2,$3,$4) RETURNING *
+        `, [name, email, password, age])
+
+        res.status(201).json({
+            message: 'User created successfully',
+            data: result.rows[0]
+        })
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+            data: error
+        })
+    }
 })
+// GET ALL USERS
+app.get('/api/users', async (req: Request, res: Response) => {
+    try {
+        const result = await pool.query(`
+        SELECT * FROM users      
+            `)
+        res.status(200).json({
+            success: true,
+            message: "Users retrieved successfully!",
+            data: result.rows
+        })
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+            data: error
+        })
+    }
+})
+
+// GET ONE USER
+app.get('/api/users/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+        SELECT * FROM users WHERE id=$1
+        `, [id]);
+        if (result.rows.length === 0) {
+            res.status(500).json({
+                success: false,
+                message: "No user found!",
+                data: {}
+            })
+        }
+        res.status(200).json({
+            success: true,
+            message: "User retrieved successfully!",
+            data: result.rows[0]
+        })
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+            data: error
+        })
+    }
+})
+
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
