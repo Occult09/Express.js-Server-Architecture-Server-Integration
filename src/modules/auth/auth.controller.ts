@@ -7,7 +7,7 @@ const loginUser = async (req: Request, res: Response) => {
 
         res.status(200).json({
             success: true,
-            message: "User retrieved successfully!",
+            message: "Login Successful!",
             data: result
         })
     } catch (error: any) {
